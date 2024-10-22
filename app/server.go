@@ -12,7 +12,7 @@ var _ = os.Exit
 
 func main() {
 	// You can use print statements as follows for debugging, they'll be visible when running tests.
-	fmt.Println("Logs from your program will appear here!")
+	//	fmt.Println("Logs from your program will appear here!")
 
 	// Uncomment this block to pass the first stage
 
@@ -22,9 +22,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	_, err = l.Accept()
+	conn, err := l.Accept()
 	if err != nil {
 		fmt.Println("Error accepting connection: ", err.Error())
 		os.Exit(1)
 	}
+	// Return HTTP response
+	response := "HTTP/1.1 200 OK\r\n\r\n"
+	conn.Write([]byte(response))
 }
