@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -40,8 +41,13 @@ func handleConnection(conn net.Conn) {
 
 	parts := strings.Split(strings.TrimSpace(requestLine), " ")
 	if len(parts) == 3 {
+		fmt.Printf("Method: %s, Path: %s\n", parts[0], parts[1])
 		path := parts[1]
-		if path == "/" {
+		if strings.HasPrefix(path, "/echo/") {
+			echoText := path[6:]
+			echoTextLength := strconv.Itoa(len(echoText))
+			conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + echoTextLength + "\r\n\r\n" + echoText))
+		} else if path == "/" {
 			conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 		} else {
 			conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
