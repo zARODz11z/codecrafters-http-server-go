@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -12,8 +13,15 @@ import (
 // Ensures gofmt doesn't remove the "net" and "os" imports above (feel free to remove this!)
 var _ = net.Listen
 var _ = os.Exit
+var dir string
 
 func main() {
+	// Extract --directory
+	fmt.Printf("os.args: %v\n", os.Args)
+	if len(os.Args) > 2 && os.Args[1] == "--directory" {
+		dir = os.Args[2]
+	}
+	fmt.Printf("--directory %s\n", dir)
 	l, err := net.Listen("tcp", "0.0.0.0:4221")
 	if err != nil {
 		fmt.Println("Failed to bind to port 4221")
@@ -68,6 +76,28 @@ func handleConnection(conn net.Conn) {
 			fmt.Printf("User-Agent: %s\n", userAgent)
 			conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + strconv.Itoa(len(userAgent)) + "\r\n\r\n" + userAgent))
 
+		} else if strings.HasPrefix(path, "/files") {
+			file_name := strings.Split(path, "/")[2]
+			fmt.Printf("file_name: %s\n", file_name)
+			full_file_path := filepath.Join(dir, file_name)
+			fmt.Printf("full_file_path: %s\n", full_file_path)
+			_, err := os.Stat(full_file_path)
+			if err != nil {
+				if os.IsNotExist(err) {
+					conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+				} else {
+					fmt.Println("Error checking file existence: ", err.Error())
+					conn.Write([]byte("HTTP/1.1 500 Internal Server Error\r\n\r\n"))
+				}
+				return
+			}
+			file_contents, err := os.ReadFile(full_file_path)
+			if err != nil {
+				fmt.Println("Error reading file: ", err.Error())
+				conn.Write([]byte("HTTP/1.1 500 Internal Server Error\r\n\r\n"))
+				return
+			}
+			conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: " + strconv.Itoa(len(file_contents)) + "\r\n\r\n" + string(file_contents)))
 		} else if path == "/" {
 			conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 		} else {
