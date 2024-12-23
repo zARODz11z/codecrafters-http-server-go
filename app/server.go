@@ -56,7 +56,30 @@ func handleConnection(conn net.Conn) {
 		if strings.HasPrefix(path, "/echo/") {
 			echoText := path[6:] //since /echo/ is 5 chars long
 			echoTextLength := strconv.Itoa(len(echoText))
-			conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + echoTextLength + "\r\n\r\n" + echoText))
+			headers := make(map[string]string)
+			for {
+				headerLine, err := reader.ReadString('\n')
+				if err != nil {
+					fmt.Println("Error reading header line: ", err.Error())
+					return
+				}
+				headerLine = strings.TrimSpace(headerLine)
+				if headerLine == "" {
+					break // End of headers
+				}
+				headerParts := strings.SplitN(headerLine, ": ", 2)
+				if len(headerParts) == 2 {
+					headers[strings.TrimSpace(headerParts[0])] = strings.TrimSpace(headerParts[1])
+				}
+			}
+			// If Accept-Encoding header equals gzip echo back response
+			acceptEncoding := headers["Accept-Encoding"]
+
+			if acceptEncoding == "gzip" {
+				conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + echoTextLength + "\r\nContent-Encoding: " + acceptEncoding + "\r\n\r\n" + echoText))
+			} else {
+				conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + echoTextLength + "\r\n\r\n" + echoText))
+			}
 		} else if strings.HasPrefix(path, "/user-agent") {
 			// *** Read headers ***
 			headers := make(map[string]string)
