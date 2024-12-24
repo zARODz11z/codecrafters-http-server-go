@@ -2,6 +2,8 @@ package main
 
 import (
 	"bufio"
+	"bytes"
+	"compress/gzip"
 	"fmt"
 	"io"
 	"net"
@@ -88,8 +90,20 @@ func handleConnection(conn net.Conn) {
 			}
 
 			if gzipAccepted {
-				conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + echoTextLength + "\r\nContent-Encoding: gzip" + "\r\n\r\n" + echoText))
+				var b bytes.Buffer
+				gz := gzip.NewWriter(&b)
+				if _, err := gz.Write([]byte(echoText)); err != nil {
+					panic(err)
+				}
+				if err := gz.Close(); err != nil {
+					panic(err)
+				}
+				compressedData := b.Bytes()
+
+				conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + strconv.Itoa(len(compressedData)) + "\r\nContent-Encoding: gzip" + "\r\n\r\n" + echoText))
+				conn.Write(compressedData)
 			} else {
+				echoTextLength := strconv.Itoa(len(echoText))
 				conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + echoTextLength + "\r\n\r\n" + echoText))
 			}
 		} else if strings.HasPrefix(path, "/user-agent") {
