@@ -75,8 +75,20 @@ func handleConnection(conn net.Conn) {
 			// If Accept-Encoding header equals gzip echo back response
 			acceptEncoding := headers["Accept-Encoding"]
 
-			if acceptEncoding == "gzip" {
-				conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + echoTextLength + "\r\nContent-Encoding: " + acceptEncoding + "\r\n\r\n" + echoText))
+			// Split the Accept-Encoding header value by commas
+			encodings := strings.Split(acceptEncoding, ",")
+
+			// Loop through the encodings and check for "gzip"
+			gzipAccepted := false
+			for _, encoding := range encodings {
+				if strings.TrimSpace(encoding) == "gzip" {
+					gzipAccepted = true
+					break
+				}
+			}
+
+			if gzipAccepted {
+				conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + echoTextLength + "\r\nContent-Encoding: gzip" + "\r\n\r\n" + echoText))
 			} else {
 				conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + echoTextLength + "\r\n\r\n" + echoText))
 			}
