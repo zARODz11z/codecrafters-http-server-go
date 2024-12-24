@@ -57,7 +57,6 @@ func handleConnection(conn net.Conn) {
 		fmt.Printf("Method: %s, Path: %s, Test: %s\n", parts[0], parts[1], parts[2])
 		if strings.HasPrefix(path, "/echo/") {
 			echoText := path[6:] //since /echo/ is 5 chars long
-			echoTextLength := strconv.Itoa(len(echoText))
 			headers := make(map[string]string)
 			for {
 				headerLine, err := reader.ReadString('\n')
@@ -99,8 +98,8 @@ func handleConnection(conn net.Conn) {
 					panic(err)
 				}
 				compressedData := b.Bytes()
-
-				conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + strconv.Itoa(len(compressedData)) + "\r\nContent-Encoding: gzip" + "\r\n\r\n" + echoText))
+				fmt.Printf("gzipAccepted: %t", gzipAccepted)
+				conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + strconv.Itoa(len(compressedData)) + "\r\nContent-Encoding: gzip" + "\r\n\r\n"))
 				conn.Write(compressedData)
 			} else {
 				echoTextLength := strconv.Itoa(len(echoText))
